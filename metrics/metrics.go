@@ -25,6 +25,10 @@ var (
 // opencensus keys
 var (
 	HostKey = makeKey("host")
+	// ServiceKey is a metrics tag for which RPC service was hit.
+	ServiceKey = makeKey("service")
+	// MethodKey is a metrics tag for which RPC method was hit.
+	MethodKey = makeKey("method")
 )
 
 // opencensus metrics
@@ -35,6 +39,10 @@ var (
 	TrackerPinCountMetric = stats.Int64("pintracker/pin_count", "Number of pins", stats.UnitDimensionless)
 	// PeerCountMetric counts the number of ipfs-cluster peers are currently in the cluster.
 	PeerCountMetric = stats.Int64("cluster/peer_count", "Number of cluster peers", stats.UnitDimensionless)
+	// RequestCountMetric is the number times a RPC request has been made.
+	RequestCountMetric = stats.Int64("libp2p_gorpc/request_count", "Number of requests", stats.UnitDimensionless)
+	// RequestLatencyMetric is how long a RPC request took to complete.
+	RequestLatencyMetric = stats.Float64("libp2p_gorpc/request_latency", "Latency of RPC request", stats.UnitMilliseconds)
 )
 
 // opencensus views, which is just the aggregation of the metrics
@@ -56,10 +64,25 @@ var (
 		Aggregation: view.Count(),
 	}
 
+	RequestCountView = &view.View{
+		Measure:     RequestCountMetric,
+		TagKeys:     []tag.Key{ServiceKey, MethodKey},
+		Aggregation: view.Sum(),
+	}
+
+	RequestLatencyView = &view.View{
+		Name:        "libp2p_gorpc/request_latency",
+		Measure:     RequestLatencyMetric,
+		TagKeys:     []tag.Key{ServiceKey, MethodKey},
+		Aggregation: latencyDistribution,
+	}
+
 	DefaultViews = []*view.View{
 		PinCountView,
 		TrackerPinCountView,
 		PeerCountView,
+		RequestCountView,
+		RequestLatencyView,
 	}
 )
 
